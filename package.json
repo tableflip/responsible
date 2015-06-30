@@ -1,0 +1,21 @@
+{
+  "name": "responsible",
+  "version": "1.0.0",
+  "description": "Can we WebP? http://caniuse.com/#search=webp%20image Probably not.",
+  "main": "index.js",
+  "author": "",
+  "license": "ISC",
+  "scripts": {
+    "osxdeps": "brew install graphicsmagick",
+    "jpeg": "mozjpeg"
+  },
+  "devDependencies": {
+    "mozjpeg": "^4.0.1",
+    "phantomjs": "^1.9.17",
+    "standard": "^4.4.1"
+  },
+  "dependencies": {
+    "minimist": "^1.1.1",
+    "underscore": "^1.8.3"
+  }
+}
