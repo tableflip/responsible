@@ -1,14 +1,15 @@
 var _ = require('underscore')
 var casper = require('casper').create({
-  pageSettings: {
-    loadImages: true,
-  },
-  viewportSize: {width: 1024, height: 768}
+  pageSettings: { loadImages: true },
+  viewportSize: {
+    width: 1024,
+    height: 768
+  }
 })
-
+var casper = require('casper').create()
 var baseUrl = casper.cli.get(0) || 'http://localhost:3000'
-var images = []
-var mediaRules = []
+var widths = casper.cli.args.slice(1)
+var data = {}
 
 function getImageMeta () {
   var img = document.querySelectorAll('img')
@@ -24,63 +25,44 @@ function getImageMeta () {
   })
 }
 
-function getMediaRules () {
-  var sheets = [].map.call(document.styleSheets, function (s) {
-    var rules = [].map.call(s.rules, function (r) {
-      return {
-        media: r.media
-      }
-    })
-    return {
-      href: s.href,
-      rules: rules
-    }
-  })
-
-  // return sheets
-  return sheets
-    .reduce(function (all, curr) { return all.concat(curr.rules) }, [])
-    .filter(function (r) { return !!r.media })
-    .map(function (r) { return r.media.mediaText })
+function trimToPath (url) {
+  return url.substring(baseUrl.length)
 }
 
 function matchDomain (e) {
   return e.src.indexOf(baseUrl) > -1
 }
 
-function toString (e) {
-  return [e.src.substring(baseUrl.length), e.width, e.naturalWidth].join(' ')
-}
-
 casper.start(baseUrl, function () {
-  images = this.evaluate(getImageMeta)
-  images = images.filter(matchDomain)
-  mediaRules = this.evaluate(getMediaRules)
+  this.echo('Loading' + this.getCurrentUrl(), 'info')
+  this.echo('widths: ' + widths)
+})
+
+casper.each(widths, function (casper, width) {
+  this.then(function () {
+    this.viewport(width, 768)
+  })
+  this.thenOpen(baseUrl, function () {
+    this.wait(1000)
+  })
+  this.then(function () {
+    this.evaluate(getImageMeta)
+      .filter(matchDomain)
+      .forEach(function (img) {
+        var path = trimToPath(img.src)
+        var datum = data[path]
+        if (!datum) datum = data[path] = []
+        datum.push(img.width + 'x' + img.height)
+        // this.echo(path + ': '+ img.width + 'x' + img.height)
+      }.bind(this))
+  this.echo(width + ' done.')
+  })
 })
 
 casper.run(function () {
-  this.echo(images.length + ' images found:')
-  this.echo(images.map(toString).join('\n'))
-  this.echo('')
-
-  var breakpoints = mediaRules.filter(function (t) {
-    return t.indexOf('-width') > -1
-  })
-  breakpoints = _.uniq(breakpoints)
-  this.echo(breakpoints.length + ' breakpoints found')
-  this.echo(breakpoints.join('\n'))
-  this.echo('')
-
-  var widths = breakpoints.reduce(function (widths, t) {
-    var re = /(\d+px)/g
-    var res = t.match(re)
-    if (!res) return widths
-    return widths.concat(res)
-  }, [])
-
-  widths = _.uniq(widths)
-  this.echo(widths.length + ' widths found')
-  this.echo(widths.join('\n'))
-
+  Object.keys(data).forEach(function (path) {
+    var sizes = _.uniq(data[path])
+    this.echo(path + ': ' + sizes)
+  }.bind(this))
   this.exit()
 })
