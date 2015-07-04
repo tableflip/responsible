@@ -14,15 +14,14 @@ var data = {}
 function getImageMeta () {
   var img = document.querySelectorAll('img')
   return [].map.call(img, function (img) {
-    // return img.naturalWidth + 'x' + img.naturalHeight
     return {
       src: img.src,
-      width: img.width,
-      height: img.height,
+      width: img.clientWidth,
+      height: img.clientHeight,
       naturalWidth: img.naturalWidth,
       naturalHeight: img.naturalHeight
     }
-  })
+  }).filter(function (d) { return d.width !== 0 })
 }
 
 function getBackgroundImages () {
@@ -38,7 +37,8 @@ function getBackgroundImages () {
     }
   }
   function getBgFromElement (el) {
-    return document.defaultView.getComputedStyle(el, null).getPropertyValue('background-image')
+    var styles = window.getComputedStyle(el)
+    return styles.getPropertyValue('display') !== 'none' && styles.getPropertyValue('background-image')
   }
 }
 
@@ -73,6 +73,10 @@ casper.each(widths, function (casper, width) {
   this.then(function () {
     this.evaluate(getImageMeta)
       .filter(matchDomain)
+      .map(function (img) {
+        this.echo(trimToPath(img.src) + ' display: ' + img.display)
+        return img
+      }.bind(this))
       .forEach(addDatum)
     this.echo(this.evaluate(getImageMeta)
       .filter(matchDomain)
@@ -86,7 +90,7 @@ casper.each(widths, function (casper, width) {
 })
 
 casper.run(function () {
-  Object.keys(data).forEach(function (path) {
+  Object.keys(data).sort().forEach(function (path) {
     var sizes = _.uniq(data[path])
     this.echo(path + ': ' + sizes)
   }.bind(this))
