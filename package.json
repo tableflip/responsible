@@ -15,7 +15,9 @@
     "standard": "^4.4.1"
   },
   "dependencies": {
+    "gm": "^1.18.1",
     "minimist": "^1.1.1",
+    "mozjpeg": "^4.0.1",
     "underscore": "^1.8.3"
   }
 }
